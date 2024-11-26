@@ -4,6 +4,17 @@ from app.services.db_service import *
 main_bp = Blueprint('main', __name__)
 
 
+@main_bp.route('/me', methods=['GET'])
+def me():
+    return jsonify(session)
+
+
+@main_bp.route('/logout', methods=['GET'])
+def logout():
+    session.clear()
+    return redirect(url_for('main.login'))
+
+
 @main_bp.route('/', methods=['GET'])
 def index():
     """
@@ -47,8 +58,9 @@ def login():
 
     user = validate_user(name, password)
     if user:
-        session['userid'] = user['userid']
-        session['role'] = user['role']
+        session['userid'] = user[0]
+        session['login'] = user[1]
+        session['role'] = user[3]
         return redirect(url_for('main.adventures'))
     else:
         return jsonify({"error": "Invalid credentials"}), 401
@@ -106,17 +118,24 @@ def view_adventure(adventure_id):
     if not adventure:
         return """
             <h1 style="width:100%; text-align: center;">No such adventure :(</h1>
-            """
+            """, 404
+
+    role = None
+    if 'role' in session.keys():
+        role = session['role']
 
     return render_template(
         'adventure.html',
         adventure={
+            'id': adventure_id,
             'name': adventure[0],
             'story': adventure[1],
             'author': adventure[2],
         },
         npcs=npcs,
         locations=locations,
+        user_is_logged_in=True,
+        user_role=role
     )
 
 
@@ -139,7 +158,7 @@ def campaigns():
 
 
 @main_bp.route('/campaigns/new', methods=['POST'])
-def create_campaign():
+def add_campaign():
     """
     Создаёт новую кампанию для указанного приключения.
     """
@@ -150,11 +169,12 @@ def create_campaign():
     adventure_id = request.form.get('adventureid')
 
     if not adventure_id:
-        return "Adventure ID is required", 400
+        return """
+        <h1 style="width:100%; text-align: center;">Adventure ID is required</h1>
+        """, 400
 
     campaign_id = create_campaign(user_id, adventure_id)
 
-    # Перенаправляем на страницу созданной кампании
     return redirect(f'/campaigns/{campaign_id}')
 
 
@@ -170,6 +190,10 @@ def campaign_detail(campaign_id):
     user_id = session.get('userid')
 
     campaign_info, npcs, locations, players, characters, is_author, campaign_id = get_campaign(user_id, campaign_id)
+    if not campaign_info:
+        return """
+        <h1 style="width:100%; text-align: center;">This campaign not exist or you not a member of campaign</h1>
+        """, 400
 
     return render_template(
         'campaign_detail.html',
@@ -189,9 +213,7 @@ def add_player(campaign_id):
         return
 
     username = request.form.get('username')
-    user_id = session.get('userid')
-
-    create_users_campaigns(username, user_id)
+    create_users_campaigns(username, campaign_id)
 
     return redirect(f'/campaigns/{campaign_id}')
 

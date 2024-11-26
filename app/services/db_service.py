@@ -27,7 +27,7 @@ def create_user(name, password, role):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                INSERT INTO users (name, password, role) 
+                INSERT INTO users (userlogin, userpassword, userrole) 
                 VALUES (%s, %s, %s)
                 """,
                 (name, password, role)
@@ -46,7 +46,7 @@ def validate_user(name, password):
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT * FROM users WHERE name = %s AND password = %s
+                SELECT * FROM users WHERE userlogin = %s AND userpassword = %s
                 """,
                 (name, password)
             )
@@ -65,7 +65,7 @@ def get_all_adventures():
         with connection.cursor() as cursor:
             cursor.execute(
                 """
-                SELECT a.adventureid, a.adventurename, u.name AS author
+                SELECT a.adventureid, a.adventurename, u.userlogin AS author
                 FROM adventures a
                 JOIN users u ON a.userid = u.userid
                 """
@@ -83,7 +83,7 @@ def get_adventure(adventure_id):
             # Получение основной информации о приключении
             cursor.execute(
                 """
-                SELECT a.adventurename, a.story, u.username
+                SELECT a.adventurename, a.story, u.userlogin
                 FROM adventures a
                 JOIN users u ON a.userid = u.userid
                 WHERE a.adventureid = %s
@@ -93,9 +93,8 @@ def get_adventure(adventure_id):
             adventure = cursor.fetchone()
 
             if not adventure:
-                return "Adventure not found", 404
+                return None
 
-            # Получение списка NPC
             cursor.execute(
                 """
                 SELECT npcname, npcdescription
@@ -122,11 +121,9 @@ def get_adventure(adventure_id):
 
 
 def create_adventure(userid, adventure_name, story, npc_data, npc_descriptions, location_data, location_descriptions):
-    # Проверка на заполненность основных данных
     if not adventure_name or not story:
         return "Adventure name and story are required", 400
 
-    # Вставка приключения в БД
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
@@ -137,11 +134,11 @@ def create_adventure(userid, adventure_name, story, npc_data, npc_descriptions, 
                 """,
                 (userid, adventure_name, story)
             )
+            print(userid, adventure_name, story)
             adventure_id = cursor.fetchone()[0]
 
-            # Вставка NPC
             for npc_name, npc_description in zip(npc_data, npc_descriptions):
-                if npc_name.strip():  # Если имя заполнено
+                if npc_name.strip():
                     cursor.execute(
                         """
                         INSERT INTO npcs (adventureid, npcname, npcdescription)
@@ -150,10 +147,9 @@ def create_adventure(userid, adventure_name, story, npc_data, npc_descriptions, 
                         (adventure_id, npc_name, npc_description)
                     )
 
-            # Вставка локаций
             for location_name, location_description in zip(location_data,
                                                            location_descriptions):
-                if location_name.strip():  # Если имя заполнено
+                if location_name.strip():
                     cursor.execute(
                         """
                         INSERT INTO locations (adventureid, locationname, locationdescription)
@@ -191,7 +187,6 @@ def create_campaign(user_id, adventure_id):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            # Вставляем новую запись в таблицу campaigns
             cursor.execute(
                 """
                 INSERT INTO campaigns (adventureid)
@@ -199,16 +194,14 @@ def create_campaign(user_id, adventure_id):
                 """,
                 (adventure_id,)
             )
-            campaign_id = cursor.fetchone()[0]  # Получаем campaignid
+            campaign_id = cursor.fetchone()[0]
 
-            # Связываем пользователя с кампанией в таблице users_campaigns
             cursor.execute(
                 """
                 INSERT INTO users_campaigns (userid, campaignid, isauthor)
                 VALUES (%s, %s, %s);
                 """,
                 (user_id, campaign_id, True)
-                # Устанавливаем isauthor = True для текущего пользователя
             )
 
         connection.commit()
@@ -223,7 +216,6 @@ def get_campaign(user_id, campaign_id):
 
     try:
         with connection.cursor() as cursor:
-            # Проверяем, является ли пользователь участником кампании
             cursor.execute(
                 """
                 SELECT uc.isauthor
@@ -235,15 +227,14 @@ def get_campaign(user_id, campaign_id):
             user_campaign_data = cursor.fetchone()
 
             if not user_campaign_data:
-                return "You are not part of this campaign.", 403
+                return None
 
             is_author = user_campaign_data[
-                0]  # True, если пользователь является автором кампании
+                0]
 
-            # Получаем информацию о кампании и приключении
             cursor.execute(
                 """
-                SELECT a.adventurename, a.story, u.username
+                SELECT a.adventurename, a.story, u.userlogin
                 FROM campaigns c
                 JOIN adventures a ON c.adventureid = a.adventureid
                 JOIN users u ON a.userid = u.userid
@@ -254,9 +245,8 @@ def get_campaign(user_id, campaign_id):
             campaign_info = cursor.fetchone()
 
             if not campaign_info:
-                return "Campaign not found", 404
+                return None
 
-            # Получаем NPC для этого приключения
             cursor.execute(
                 """
                 SELECT npcname, npcdescription
@@ -267,7 +257,6 @@ def get_campaign(user_id, campaign_id):
             )
             npcs = cursor.fetchall()
 
-            # Получаем локации для этого приключения
             cursor.execute(
                 """
                 SELECT locationname, locationdescription
@@ -278,10 +267,9 @@ def get_campaign(user_id, campaign_id):
             )
             locations = cursor.fetchall()
 
-            # Получаем игроков в кампании
             cursor.execute(
                 """
-                SELECT u.username, uc.isauthor
+                SELECT u.userlogin, uc.isauthor
                 FROM users_campaigns uc
                 JOIN users u ON uc.userid = u.userid
                 WHERE uc.campaignid = %s
@@ -290,7 +278,6 @@ def get_campaign(user_id, campaign_id):
             )
             players = cursor.fetchall()
 
-            # Получаем персонажей, принадлежащих этой кампании
             cursor.execute(
                 """
                 SELECT charactername, characterclass, characterlevel
@@ -311,8 +298,7 @@ def create_users_campaigns(username, campaign_id):
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            # Получаем ID пользователя по username
-            cursor.execute("SELECT userid FROM users WHERE username = %s",
+            cursor.execute("SELECT userid FROM users WHERE userlogin = %s",
                            (username,))
             user = cursor.fetchone()
 
@@ -321,7 +307,6 @@ def create_users_campaigns(username, campaign_id):
 
             user_id_to_add = user[0]
 
-            # Добавляем пользователя в таблицу users_campaigns
             cursor.execute(
                 "INSERT INTO users_campaigns (userid, campaignid, isauthor) VALUES (%s, %s, FALSE)",
                 (user_id_to_add, campaign_id)
@@ -344,7 +329,6 @@ def create_player_character(
     connection = get_db_connection()
     try:
         with connection.cursor() as cursor:
-            # Добавляем персонажа в таблицу player_characters
             cursor.execute(
                 """
                 INSERT INTO player_characters (campaignid, charactername, characterdescription, characterlevel,
