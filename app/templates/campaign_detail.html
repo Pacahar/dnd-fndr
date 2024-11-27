@@ -12,16 +12,16 @@
     {% include 'header.html' %}
     <div class="container py-5">
         <h1>{{ campaign_info[0] }}</h1>
-        <p><strong>Author:</strong> {{ campaign_info[2] }}</p>
-        <p><strong>Story:</strong> {{ campaign_info[1] }}</p>
+        <p><strong>Автор:</strong> {{ campaign_info[2] }}</p>
+        <p><strong>Сюжет:</strong> {{ campaign_info[1] }}</p>
 
         <h2 class="mt-5">NPCs</h2>
         {% if npcs %}
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Description</th>
+                    <th>Имя</th>
+                    <th>Описание</th>
                 </tr>
             </thead>
             <tbody>
@@ -34,7 +34,7 @@
             </tbody>
         </table>
         {% else %}
-        <p>No NPCs found.</p>
+        <p>Не найдено NPC.</p>
         {% endif %}
 
         <h2 class="mt-5">Locations</h2>
@@ -42,8 +42,8 @@
         <table class="table table-striped">
             <thead>
                 <tr>
-                    <th>Name</th>
-                    <th>Description</th>
+                    <th>Название</th>
+                    <th>Описание</th>
                 </tr>
             </thead>
             <tbody>
@@ -56,10 +56,10 @@
             </tbody>
         </table>
         {% else %}
-        <p>No locations found.</p>
+        <p>Не найдено локаций.</p>
         {% endif %}
 
-        <h2 class="mt-5">Players</h2>
+        <h2 class="mt-5">Игроки</h2>
         {% if players %}
         <ul>
             {% for player in players %}
@@ -91,27 +91,27 @@
             </tbody>
         </table>
         {% else %}
-        <p>No characters found.</p>
+        <p>Персонажей не найдено.</p>
         {% endif %}
 
         {% if is_author %}
-        <h2 class="mt-5">Manage Campaign</h2>
-        <h3>Add New Player</h3>
+        <h2 class="mt-5">Управление кампанией</h2>
+        <h3>Добавить игрока</h3>
         <form action="/campaigns/{{ campaign_id }}/add_player" method="post">
-            <input type="text" name="username" class="form-control" placeholder="Enter player's username" required>
-            <button type="submit" class="btn btn-primary mt-2">Add Player</button>
+            <input type="text" name="username" class="form-control" placeholder="Введите имя игрока" required>
+            <button type="submit" class="btn btn-primary mt-2">Добавить</button>
         </form>
 
-        <h3 class="mt-5">Add New Character</h3>
+        <h3 class="mt-5">Добавить нового персонажа</h3>
         <form action="/campaigns/{{ campaign_id }}/add_character" method="post">
-            <input type="text" name="charactername" class="form-control" placeholder="Character Name" required>
-            <textarea name="characterdescription" class="form-control mt-2" placeholder="Character Description" required></textarea>
-            <input type="number" name="characterlevel" class="form-control mt-2" placeholder="Character Level" required>
-            <input type="text" name="characterclass" class="form-control mt-2" placeholder="Character Class" required>
-            <textarea name="characterskills" class="form-control mt-2" placeholder="Character Skills"></textarea>
-            <input type="number" name="characterarmor" class="form-control mt-2" placeholder="Character Armor" required>
-            <input type="number" name="characterhp" class="form-control mt-2" placeholder="Character HP" required>
-            <button type="submit" class="btn btn-primary mt-2">Add Character</button>
+            <input type="text" name="charactername" class="form-control" placeholder="Имя персонажа" required>
+            <textarea name="characterdescription" class="form-control mt-2" placeholder="Описание" required></textarea>
+            <input type="number" name="characterlevel" class="form-control mt-2" placeholder="Уровень" required>
+            <input type="text" name="characterclass" class="form-control mt-2" placeholder="Класс" required>
+            <textarea name="characterskills" class="form-control mt-2" placeholder="Навыки"></textarea>
+            <input type="number" name="characterarmor" class="form-control mt-2" placeholder="Класс Брони" required>
+            <input type="number" name="characterhp" class="form-control mt-2" placeholder="Очки Здоровья" required>
+            <button type="submit" class="btn btn-primary mt-2">Добавить персонажа</button>
         </form>
         {% endif %}
     </div>

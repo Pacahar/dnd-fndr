@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create New Adventure</title>
+    <title>Новое приключение</title>
     <!-- Подключение Bootstrap -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -11,23 +11,23 @@
 <body class="bg-light">
     {% include 'header.html' %}
     <div class="container py-5">
-        <h1 class="mb-4">Create New Adventure</h1>
+        <h1 class="mb-4">Создать новое приключение</h1>
         <form action="/adventures/new" method="POST">
             <div class="mb-3">
-                <label for="adventurename" class="form-label">Adventure Name</label>
+                <label for="adventurename" class="form-label">Название приключения</label>
                 <input type="text" id="adventurename" name="adventurename" class="form-control" required>
             </div>
             <div class="mb-3">
-                <label for="story" class="form-label">Story</label>
+                <label for="story" class="form-label">Сюжет</label>
                 <textarea id="story" name="story" class="form-control" rows="4" required></textarea>
             </div>
 
-            <h2 class="mt-4">NPCs</h2>
+            <h2 class="mt-4">NPC</h2>
             <table class="table" id="npc-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Description</th>
+                        <th>Имя</th>
+                        <th>Описание</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -39,12 +39,12 @@
             </table>
 
 
-            <h2 class="mt-4">Locations</h2>
+            <h2 class="mt-4">Локации</h2>
             <table class="table" id="location-table">
                 <thead>
                     <tr>
-                        <th>Name</th>
-                        <th>Description</th>
+                        <th>Название</th>
+                        <th>Описание</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -56,7 +56,7 @@
             </table>
 
 
-            <button type="submit" class="btn btn-primary w-100">Create Adventure</button>
+            <button type="submit" class="btn btn-primary w-100">Создать приключение</button>
         </form>
     </div>
 

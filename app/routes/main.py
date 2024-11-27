@@ -17,17 +17,11 @@ def logout():
 
 @main_bp.route('/', methods=['GET'])
 def index():
-    """
-    Возвращает HTML-страницу регистрации.
-    """
     return render_template('register.html')
 
 
 @main_bp.route('/register', methods=['POST'])
 def register():
-    """
-    Обрабатывает данные формы регистрации и добавляет пользователя в базу.
-    """
     name = request.form.get('name')
     password = request.form.get('password')
     role = request.form.get('role')
@@ -37,16 +31,13 @@ def register():
 
     try:
         create_user(name, password, role)
-        return redirect(url_for('main.adventures'))
+        return redirect(url_for('main.login'))
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 
 @main_bp.route('/login', methods=['GET', 'POST'])
 def login():
-    """
-    Обрабатывает логин пользователя.
-    """
     if request.method == 'GET':
         return render_template('login.html')
 
@@ -68,20 +59,20 @@ def login():
 
 @main_bp.route('/adventures', methods=['GET'])
 def adventures():
-    """
-    Показывает список приключений.
-    Если пользователь - master, показывает кнопку для создания приключений.
-    """
-    all_adventures = get_all_adventures()
+    search_name = request.args.get('search_name', None)
+    search_author = request.args.get('search_author', None)
+    all_adventures = get_all_adventures(search_name, search_author)
+
     user_role = session.get('role', None)
-    return render_template('adventures.html', adventures=all_adventures, user_role=user_role)
+    return render_template('adventures.html',
+                           adventures=all_adventures,
+                           user_role=user_role,
+                           search_name=search_name,
+                           search_author=search_author)
 
 
 @main_bp.route('/adventures/new', methods=['GET', 'POST'])
 def new_adventure():
-    """
-    Обрабатывает создание нового приключения.
-    """
     if session.get('role') != 'master':
         return redirect(url_for('main.adventures'))
 
@@ -110,9 +101,6 @@ def new_adventure():
 
 @main_bp.route('/adventures/<int:adventure_id>', methods=['GET'])
 def view_adventure(adventure_id):
-    """
-    Отображает информацию о приключении, включая NPC и локации.
-    """
     adventure, npcs, locations = get_adventure(adventure_id)
 
     if not adventure:
@@ -125,31 +113,65 @@ def view_adventure(adventure_id):
         role = session['role']
 
     return render_template(
-        'adventure.html',
-        adventure={
-            'id': adventure_id,
-            'name': adventure[0],
-            'story': adventure[1],
-            'author': adventure[2],
-        },
+        'adventure_detail.html',
+        adventure=adventure,
         npcs=npcs,
         locations=locations,
         user_is_logged_in=True,
-        user_role=role
+        user_role=role,
+        is_author=is_adventure_author(adventure_id, session.get('userid', None))
     )
+
+
+@main_bp.route('/adventures/<int:adventure_id>/delete', methods=['POST'])
+def delete_adv(adventure_id):
+    user_id = session.get('userid')
+    if not user_id:
+        return redirect('/login')
+
+    delete_adventure(adventure_id, user_id)
+    return redirect(url_for('main.adventures'))
+
+
+@main_bp.route('/adventures/<int:adventure_id>/edit', methods=['GET'])
+def edit_adventure_form(adventure_id):
+    user_id = session.get('userid')
+    if (not user_id) or (not is_adventure_author(adventure_id, user_id)):
+        return redirect('/adventures')
+
+    adventure, npcs, locations = get_adventure(adventure_id)
+    print(type(locations), locations)
+    print(type(npcs), npcs)
+    if not adventure:
+        return "Приключение не найдено", 404
+
+    return render_template('edit_adventure.html', adventure=adventure, npcs=npcs, locations=locations)
+
+
+@main_bp.route('/adventures/<int:adventure_id>/edit', methods=['POST'])
+def edit_adventure(adventure_id):
+    user_id = session.get('userid')
+
+    if not is_adventure_author(adventure_id, user_id):
+        return redirect(url_for('main.adventure', adventure_id=adventure_id))
+
+    adventure = {
+        'adventurename': request.form.get('adventurename'),
+        'story': request.form.get('story')
+    }
+    update_adventure(adventure_id, adventure)
+
+    return redirect(f'/adventures/{adventure_id}/edit')
 
 
 @main_bp.route('/campaigns', methods=['GET'])
 def campaigns():
-    """
-    Отображает список кампаний пользователя.
-    """
     if not session:
         return redirect(url_for('main.login'))
 
     user_id = session.get('userid')
 
-    my_campaigns = get_campaigns(user_id)
+    my_campaigns = get_all_campaigns(user_id)
 
     return render_template(
         'campaigns.html',
@@ -159,9 +181,6 @@ def campaigns():
 
 @main_bp.route('/campaigns/new', methods=['POST'])
 def add_campaign():
-    """
-    Создаёт новую кампанию для указанного приключения.
-    """
     if not session:
         return
 
@@ -173,17 +192,13 @@ def add_campaign():
         <h1 style="width:100%; text-align: center;">Adventure ID is required</h1>
         """, 400
 
-    campaign_id = create_campaign(user_id, adventure_id)
+    create_campaign(user_id, adventure_id)
 
-    return redirect(f'/campaigns/{campaign_id}')
+    return redirect('/campaigns')
 
 
 @main_bp.route('/campaigns/<int:campaign_id>', methods=['GET', 'POST'])
 def campaign_detail(campaign_id):
-    """
-    Отображает информацию о кампании, включая приключение, NPC, локации и персонажей.
-    Если пользователь является автором кампании, предоставляется меню для управления участниками и персонажами.
-    """
     if not session:
         return redirect(url_for('main.login'))
 
@@ -243,5 +258,46 @@ def add_character(campaign_id):
     )
 
     return redirect(f'/campaigns/{campaign_id}')
+
+
+@main_bp.route('/npc/create', methods=['POST'])
+def add_npc():
+    name = request.form.get('name')
+    description = request.form.get('description')
+    adventure_id = request.form.get('adventureid')
+
+    create_npc(adventure_id, name, description)
+    return redirect(f'/adventures/{adventure_id}/edit')
+
+
+@main_bp.route('/npc/delete', methods=['POST'])
+def delete_npc_by_name():
+    name = request.form.get('name')
+    description = request.form.get('description')
+    adventure_id = request.form.get('adventureid')
+
+    delete_npc(adventure_id, name, description)
+    return redirect(f'/adventures/{adventure_id}/edit')
+
+
+@main_bp.route('/locations/delete', methods=['POST'])
+def delete_location_by_name():
+    name = request.form.get('name')
+    description = request.form.get('description')
+    adventure_id = request.form.get('adventureid')
+
+    delete_location(adventure_id, name, description)
+    return redirect(f'/adventures/{adventure_id}/edit')
+
+
+@main_bp.route('/locations/create', methods=['POST'])
+def add_location():
+    name = request.form.get('name')
+    description = request.form.get('description')
+    adventure_id = request.form.get('adventureid')
+
+    create_location(adventure_id, name, description)
+
+    return redirect(f'/adventures/{adventure_id}/edit')
 
 

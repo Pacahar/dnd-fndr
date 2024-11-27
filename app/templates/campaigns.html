@@ -11,7 +11,7 @@
 <body class="bg-light">
     {% include 'header.html' %}
     <div class="container py-5">
-        <h1 class="mb-4">Your Campaigns</h1>
+        <h1 class="mb-4">Ваши кампании</h1>
         {% if campaigns %}
         <ul class="list-group">
             {% for campaign in campaigns %}
@@ -21,8 +21,8 @@
             {% endfor %}
         </ul>
         {% else %}
-        <p class="text-danger">No campaigns found.</p>
-        <a href="/adventures" class="btn btn-primary">Choose adventure</a>
+        <p class="text-danger">Кампаний не найдено.</p>
+        <a href="/adventures" class="btn btn-primary">Выбрать приключение</a>
         {% endif %}
     </div>
 </body>
